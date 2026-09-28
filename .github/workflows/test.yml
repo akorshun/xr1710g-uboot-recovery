@@ -1,0 +1,73 @@
+name: test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Установить shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Проверить скрипты
+        run: shellcheck -s dash flash.sh upload.sh tests/run.sh
+
+  powershell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Проверить синтаксис upload.ps1
+        shell: pwsh
+        run: |
+          $errors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ./upload.ps1), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors) {
+            $errors | ForEach-Object { "$($_.Extent.StartLineNumber): $($_.Message)" }
+            exit 1
+          }
+          "upload.ps1: синтаксис в порядке"
+
+  slot-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Проверить образ слота
+        run: python3 tests/check_slot.py firmware/xr1710g-chainloader-slot.bin
+      - name: Проверить контрольные суммы
+        run: cd firmware && sha256sum -c SHA256SUMS
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [dash, "busybox sh", bash]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Установить оболочки и утилиты
+        run: sudo apt-get update -qq && sudo apt-get install -y dash busybox-static binutils curl
+      - name: Тесты (${{ matrix.shell }})
+        env:
+          SH: ${{ matrix.shell }}
+        run: sh tests/run.sh
+
+  upstream:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Сверить образ с релизом YYH2913/http-uboot
+        run: |
+          url=https://github.com/YYH2913/http-uboot/releases/download/xr1710g_260805/xr1710g-chainloader-slot.bin
+          curl -fsSL -o /tmp/upstream.bin "$url"
+          local_sum=$(sha256sum firmware/xr1710g-chainloader-slot.bin | awk '{ print $1 }')
+          upstream_sum=$(sha256sum /tmp/upstream.bin | awk '{ print $1 }')
+          echo "в репозитории: $local_sum"
+          echo "в релизе:      $upstream_sum"
+          test "$local_sum" = "$upstream_sum"
