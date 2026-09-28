@@ -245,8 +245,10 @@ run_flash() {
 		FAKE_SETENV_LOG="$dir/setenv.log"
 		FAKE_SETENV_SCRIPT="$dir/setenv-script.txt"
 		FAKE_REBOOT_LOG="$dir/reboot.log"
+		# busybox со standalone-шеллом иначе возьмёт свои апплеты вместо заглушек
+		BB_OVERRIDE_APPLETS="id reboot sync strings"
 		export XR1710G_ROOT XR1710G_BACKUP_DIR FAKE_ENV FAKE_SETENV_LOG \
-			FAKE_SETENV_SCRIPT FAKE_REBOOT_LOG
+			FAKE_SETENV_SCRIPT FAKE_REBOOT_LOG BB_OVERRIDE_APPLETS
 		$SH "$FLASH" "$@"
 	) > "$dir/out.txt" 2>&1
 	echo "$?" > "$dir/rc.txt"

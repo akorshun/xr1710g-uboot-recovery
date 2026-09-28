@@ -51,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Установить оболочки и утилиты
-        run: sudo apt-get update -qq && sudo apt-get install -y dash busybox-static binutils curl
+        run: sudo apt-get update -qq && sudo apt-get install -y dash busybox binutils curl
       - name: Тесты (${{ matrix.shell }})
         env:
           SH: ${{ matrix.shell }}
