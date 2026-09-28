@@ -39,6 +39,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Проверить образ слота
         run: python3 tests/check_slot.py firmware/xr1710g-chainloader-slot.bin
+      - name: Установить capstone
+        run: pip install --quiet capstone
+      - name: Проверить модуль mtd-rw
+        run: python3 tests/check_module.py firmware/mtd-rw-6.18.41.ko "6.18.41 SMP mod_unload aarch64"
       - name: Проверить контрольные суммы
         run: cd firmware && sha256sum -c SHA256SUMS
 
